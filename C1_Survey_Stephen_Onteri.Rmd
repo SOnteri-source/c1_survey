@@ -1,0 +1,196 @@
+---
+title: "C1_Survey 2025"
+author: "Stephen Onteri"
+date: "2025-09-03"
+output: html_document
+---
+
+```{r}
+# Loading tidyverse
+library(tidyverse)
+```
+# Q1. 1. Import class one survey data from our Github site (https://github.com/kijohnson/Advanced-Data-Analysis) (The dataset is called ‘Class 1 Survey Fall 2025 2.csv’), calling the R dataframe that you create C1survey.
+```{r import-data}
+# Importing the data and naming it C1_Survey
+C1_Survey <- read.csv("https://raw.githubusercontent.com/kijohnson/Advanced-Data-Analysis/main/Class%201%20Survey%20Fall%202025%202.csv")
+```
+
+# Q2. 2. Determine: a. the number of observations (i.e. the number of people who filled out the survey) and b. the number of variables in the dataframe.
+```{r count-obs}
+# Number of participants who filled the survey
+nrow(C1_Survey)
+```
+
+```{r count-vars}
+# Number of variables in C1_Survey
+ncol(C1_Survey)
+```
+
+# Q3.  Rename the column variables to something shorter and that is descriptive of what the variable is about (for example like_dogs for the ‘Do you like dogs?’ question variable) and b. Display that they are renamed. Hints: You can use either the rename_with function or the names function.
+```{r rename-columns}
+# Rename columns in C1_Survey
+C1_Survey <- C1_Survey %>%
+  rename_with(~ c(
+    "id", "like_cats", "like_dogs", "have_desert", "slogan", "fav_day",
+    "larkORowl", "fav_food", "fav_drink", "fav_season", "fav_month",
+    "hobby", "program", "specialization", "stat_software", "R_exp",
+    "coding_comfort", "coding_length", "top_three", "public_health_interest",
+    "fav_num", "bday", "bmonth", "country", "state", "city",
+    "highest_educ_level"
+  ), .cols = 1:27)
+```
+
+```{r rename-columns}
+# Load dplyr
+library(dplyr)
+
+# Rename columns in C1_Survey
+C1_Survey <- rename_with(
+  C1_Survey,
+  ~ c(
+    "id", "like_cats", "like_dogs", "have_desert", "slogan", "fav_day",
+    "larkORowl", "fav_food", "fav_drink", "fav_season", "fav_month",
+    "hobby", "program", "specialization", "stat_software", "R_exp",
+    "coding_comfort", "coding_length", "top_three", "public_health_interest",
+    "fav_num", "bday", "bmonth", "country", "state", "city",
+    "highest_educ_level"
+  ),
+  .cols = 1:27
+)
+```
+
+```{r confirm renaming}
+# Check first few rows
+head(C1_Survey)
+```
+
+# Q4. Write code to determine and display the number of factor, integer, numerical, and character variables there are in the C1survey dataset.
+```{r variable-types-simple}
+# Count number of variables by class
+table(sapply(C1_Survey, class))
+```
+
+# Q5. 5. a. Using code, check the bday and bmonth variables for any unusual or missing values (hint: use table function). If you find any, b. describe what you will do with the unusual values in a comment before or immediately following the code that does it, and c. after you have cleaned up any unusual values, find the median bday and month.
+```{r check-bday-bmonth}
+# Check bday variable
+table(C1_Survey$bday, useNA = "ifany")  # includes NA values
+
+# Check bmonth variable
+table(C1_Survey$bmonth, useNA = "ifany")  # includes NA values
+```
+# Plan for unusual or missing values:
+# For bday: any values <1 or >31 or NA will be set to NA or corrected if we have proper info
+# For bmonth: any values <1 or >12 or NA will be set to NA or corrected if known
+
+```{r convert-bday-bmonth}
+# Convert bday and bmonth to numeric if they are not already
+C1_Survey$bday <- as.numeric(C1_Survey$bday)
+C1_Survey$bmonth <- as.numeric(C1_Survey$bmonth)
+
+# Check the structure of these variables to confirm
+str(C1_Survey[, c("bday", "bmonth")])
+```
+
+```{r clean-bday-bmonth}
+# Ensure bday and bmonth are numeric (handles factors imported from CSV)
+C1_Survey$bday <- as.numeric(as.character(C1_Survey$bday))
+C1_Survey$bmonth <- as.numeric(as.character(C1_Survey$bmonth))
+```
+
+```{r clean unusual values}
+# Clean unusual values
+C1_Survey$bday[C1_Survey$bday < 1 | C1_Survey$bday > 31] <- NA
+C1_Survey$bmonth[C1_Survey$bmonth < 1 | C1_Survey$bmonth > 12] <- NA
+```
+
+```{r check unusual or remaining 999 values}
+# Check for any remaining unusual or missing values
+table(C1_Survey$bday, useNA = "ifany")
+table(C1_Survey$bmonth, useNA = "ifany")
+```
+
+``` {r median determination bday and bmonth}
+# Calculate median bday and bmonth, ignoring NAs
+median_bday <- median(C1_Survey$bday, na.rm = TRUE)
+median_bmonth <- median(C1_Survey$bmonth, na.rm = TRUE)
+```
+
+# 6. Create a new variable called bseason that gives the season according to Northern Meteorological season in which respondents were born (winter = 12/1 to 2/29, spring = 3/1 to 5/31, summer = 6/1 to 8/31, fall = 9/1 to 11/30). b. Using the table function, print a table of Seasons in the columns and bmonths in the rows that allows you to check that the coding is correct c. Sum the columns using the addmargins function to answer the question of how many classmates were born in each season? Include your answer in the code.
+```{r load-packages}
+library(dplyr)
+```
+
+```{r create-bseason}
+C1_Survey <- C1_Survey %>%
+  mutate(bseason = case_when(
+    (bmonth == 12 & bday >= 1) | bmonth == 1 | bmonth == 2 ~ "Winter",
+    bmonth >= 3 & bmonth <= 5 ~ "Spring",
+    bmonth >= 6 & bmonth <= 8 ~ "Summer",
+    bmonth >= 9 & bmonth <= 11 ~ "Fall",
+    TRUE ~ NA_character_
+  ))
+```
+
+# 
+```{r check-bseason}
+# Cross-tabulation of bmonth (rows) and bseason (columns)
+table(C1_Survey$bmonth, C1_Survey$bseason, useNA = "ifany")
+```
+
+```{r bseason-count}
+# Create a cross-tabulation of bmonth (rows) vs bseason (columns)
+season_table <- table(C1_Survey$bmonth, C1_Survey$bseason, useNA = "ifany")
+
+# Sum the columns to get number of classmates born in each season
+season_summary <- addmargins(season_table, margin = 2)  # margin = 2 sums columns
+
+# Print the table with column sums
+season_summary
+
+# Answer: Number of classmates born in each season
+# Winter: season_summary["Sum", "Winter"]
+# Spring: season_summary["Sum", "Spring"]
+# Summer: season_summary["Sum", "Summer"]
+# Fall:   season_summary["Sum", "Fall"]
+```
+
+# Pick your favorite variable or variables to analyze, come up with a question you want to answer with that variable or variables, generate the code, and provide an answer to your question. Describe what you did using comments (i.e. #’s).
+
+# Research Question: Which hobbies are most common among classmates?
+
+```{r analyze-hobby}
+# Check the distribution of the hobby variable, including missing values
+table(C1_Survey$hobby, useNA = "ifany")  # counts per hobby
+```
+
+``` {r}
+# Calculate percentages for each hobby
+prop.table(table(C1_Survey$hobby)) * 100
+```
+
+```{r analyze_hobby_proportion}
+# Calculate percentages for each hobby
+prop.table(table(C1_Survey$hobby)) * 100
+```
+# Selected variable of interest: hobby
+# Research question: Which hobbies are most common among classmates?
+# Check the column names to make sure variable hobby exists
+# Generate a frequency table of hobbies including missing values
+# Calculate percentages for each hobby
+# converts counts to proportions; multiply by 100 for %
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
